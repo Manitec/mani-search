@@ -1,19 +1,53 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 
+declare global {
+  interface Window {
+    google?: any;
+    __gcse?: any;
+  }
+}
+
 export default function SearchResults() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const query = searchParams.get("q") || "";
+  const [query, setQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
-    const googleWindow = window as any;
-    if (googleWindow.google?.search?.cse?.element?.render) {
-      googleWindow.google.search.cse.element.render({
-        div: "cse-results",
-        tag: "searchresults-only",
-      });
+    // Parse query from hash
+    const hash = window.location.hash;
+    const match = hash.match(/gsc\.q=([^&]*)/);
+    const q = match ? decodeURIComponent(match[1]) : "";
+    setQuery(q);
+    setSearchInput(q);
+
+    // Render Google CSE
+    const renderCSE = () => {
+      const googleWindow = window as any;
+      
+      if (googleWindow.google?.search?.cse?.element) {
+        try {
+          googleWindow.google.search.cse.element.render({
+            div: "cse-results",
+            tag: "searchresults-only",
+          });
+        } catch (error) {
+          console.error("Error rendering CSE:", error);
+          setTimeout(renderCSE, 500);
+        }
+      } else {
+        setTimeout(renderCSE, 500);
+      }
+    };
+
+    renderCSE();
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      window.location.href = `/search/#gsc.tab=0&gsc.q=${encodeURIComponent(searchInput)}&gsc.sort=`;
     }
-  }, [query]);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -26,13 +60,13 @@ export default function SearchResults() {
               <span className="text-2xl font-display font-bold text-slate-900">Mani Search</span>
             </a>
             <div className="flex-1">
-              <form method="GET" action="/search" className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <div className="flex items-center gap-2 backdrop-blur-md bg-white/80 border border-slate-200 rounded-lg px-4 py-2">
                   <Search className="w-4 h-4 text-orange-500" />
                   <input
                     type="text"
-                    name="q"
-                    defaultValue={query}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Search..."
                     className="flex-1 bg-transparent border-0 text-slate-900 placeholder:text-slate-400 focus:outline-none font-body"
                   />
@@ -60,16 +94,7 @@ export default function SearchResults() {
         )}
 
         {/* Google Custom Search Results Container */}
-        <div
-          id="cse-results"
-          className="space-y-6"
-          style={{
-            "--cse-bg-color": "transparent",
-            "--cse-border-color": "var(--border)",
-            "--cse-text-color": "var(--foreground)",
-            "--cse-link-color": "var(--accent)",
-          } as React.CSSProperties}
-        />
+        <div id="cse-results" className="space-y-6" />
 
         {!query && (
           <div className="text-center py-12">
