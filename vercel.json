@@ -1,8 +1,8 @@
 {
-  "buildCommand": "cd client && npm run build",
-  "outputDirectory": "client/dist",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/public",
   "framework": "vite",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
     {
       "source": "/(.*)",
